@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Step-by-Step Drawing Instructions</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    .step-image {
+      display: inline-block;
+      margin: 10px;
+      border: 1px solid #333;
+      width: 300px;
+      height: 400px;
+    }
+    .steps-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>Step-by-Step Drawing Instructions</h1>
+
+  <!-- Drawing input -->
+  <input type="text" id="objectInput" placeholder="Enter an object to draw (e.g., 'tree')" />
+  <button onclick="generateSteps()">Generate Drawing Steps</button>
+  
+  <!-- Image upload input -->
+  <h2>Or Upload a Photo</h2>
+  <input type="file" id="imageInput" accept="image/*" />
+  <button onclick="processPhoto()">Generate Steps from Photo</button>
+
+  <!-- Display steps -->
+  <div id="stepsContainer" class="steps-container"></div>
+
+  <!-- Load OpenCV.js -->
+  <script async src="https://docs.opencv.org/3.4.0/opencv.js"></script>
+  
+  <script>
+    // Ensure OpenCV.js is ready before using it
+    let cvReady = false;
+
+    function onOpenCvReady() {
+      cvReady = true;
+      console.log("OpenCV.js is ready to use!");
+    }
+
+    // This function will be called once OpenCV is loaded
+    window.onload = function() {
+      if (cv) {
+        onOpenCvReady();
+      } else {
+        console.error("OpenCV.js could not be loaded.");
+      }
+    };
+
+    const stepsContainer = document.getElementById("stepsContainer");
+
+    function generateSteps() {
+      const object = document.getElementById("objectInput").value.toLowerCase();
+      stepsContainer.innerHTML = ''; // Clear previous steps
+
+      if (object === 'tree') {
+        displayDrawingSteps(['trunk', 'branches', 'leaves', 'details']);
+      } else {
+        stepsContainer.innerHTML = 'Sorry, no instructions available for this object.';
+      }
+    }
+
+    function displayDrawingSteps(steps) {
+      steps.forEach((step, index) => {
+        const stepImage = createStepImage(index + 1, step);
+        stepsContainer.appendChild(stepImage);
+      });
+    }
+
+    function createStepImage(stepNumber, stepDetail) {
+      const canvas = document.createElement('canvas');
+      canvas.className = 'step-image';
+      canvas.width = 300;
+      canvas.height = 400;
+      const ctx = canvas.getContext('2d');
+
+      drawStep(ctx, stepNumber, stepDetail);
+      return canvas;
+    }
+
+    function drawStep(ctx, stepNumber, stepDetail) {
+      ctx.clearRect(0, 0, 300, 400);
+
+      if (stepNumber >= 1) {
+        drawTrunk(ctx);
+      }
+      if (stepNumber >= 2) {
+        drawBranches(ctx);
+      }
+      if (stepNumber >= 3) {
+        drawLeaves(ctx);
+      }
+      if (stepNumber >= 4) {
+        drawDetails(ctx);
+      }
+
+      ctx.font = "20px Arial";
+      ctx.fillStyle = "black";
+      ctx.fillText(`Step ${stepNumber}: ${stepDetail}`, 10, 380);
+    }
+
+    function drawTrunk(ctx) {
+      ctx.fillStyle = "brown";
+      ctx.fillRect(120, 250, 60, 150); 
+    }
+
+    function drawBranches(ctx) {
+      ctx.strokeStyle = "brown";
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(150, 250);
+      ctx.lineTo(90, 180);
+      ctx.moveTo(150, 250);
+      ctx.lineTo(210, 180);
+      ctx.stroke();
+    }
+
+    function drawLeaves(ctx) {
+      ctx.fillStyle = "green";
+      ctx.beginPath();
+      ctx.arc(150, 180, 80, 0, Math.PI * 2, true);
+      ctx.fill();
+    }
+
+    function drawDetails(ctx) {
+      ctx.fillStyle = "darkgreen";
+      ctx.beginPath();
+      ctx.arc(150, 180, 60, 0, Math.PI * 2, true);
+      ctx.fill();
+    }
+
+    function processPhoto() {
+      if (!cvReady) {
+        alert("OpenCV.js is not ready yet. Please wait.");
+        return;
+      }
+
+      const imageInput = document.getElementById('imageInput');
+      const file = imageInput.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(event) {
+        const imgElement = new Image();
+        imgElement.src = event.target.result;
+        imgElement.onload = function() {
+          stepsContainer.innerHTML = ''; 
+          generateImageSteps(imgElement);
+        }
+      };
+
+      if (file) {
+        reader.readAsDataURL(file);
+      } else {
+        stepsContainer.innerHTML = 'No image uploaded.';
+      }
+    }
+
+    function generateImageSteps(image) {
+       const step1Canvas = document.createElement('canvas');
+       const step2Canvas = document.createElement('canvas');
+       const step3Canvas = document.createElement('canvas');
+       const step4Canvas = document.createElement('canvas');
+  
+       step1Canvas.className = 'step-image';
+       step2Canvas.className = 'step-image';
+       step3Canvas.className = 'step-image';
+       step4Canvas.className = 'step-image';
+
+       const step1Ctx = step1Canvas.getContext('2d');
+       const step2Ctx = step2Canvas.getContext('2d');
+       const step3Ctx = step3Canvas.getContext('2d');
+       const step4Ctx = step4Canvas.getContext('2d');
+
+       step1Canvas.width = step2Canvas.width = step3Canvas.width = step4Canvas.width = 300;
+       step1Canvas.height = step2Canvas.height = step3Canvas.height = step4Canvas.height = 400;
+
+  // Step 1: Original image
+      step1Ctx.drawImage(image, 0, 0, 300, 400);
+      stepsContainer.appendChild(step1Canvas);
+
+  // Step 2: Grayscale and smooth image
+      const src = cv.imread(step1Canvas);
+      const gray = new cv.Mat();
+      const blur = new cv.Mat();
+      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+      cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+      cv.imshow(step2Canvas, blur);
+      stepsContainer.appendChild(step2Canvas);
+
+  // Step 3: Adaptive threshold for clearer edges
+      const thresh = new cv.Mat();
+      cv.adaptiveThreshold(blur, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
+      cv.imshow(step3Canvas, thresh);
+      stepsContainer.appendChild(step3Canvas);
+
+  // Step 4: Edge detection (Canny)
+      const edges = new cv.Mat();
+      cv.Canny(thresh, edges, 50, 150);
+      cv.imshow(step4Canvas, edges);
+      stepsContainer.appendChild(step4Canvas);
+
+  // Cleanup
+      src.delete();
+      gray.delete();
+      blur.delete();
+      thresh.delete();
+      edges.delete();
+}
+</script>
+</body>
+</html>
